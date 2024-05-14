@@ -5,6 +5,7 @@ import requests
 
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
+from utils.db_utils import create_connection, create_table
 
 # Define the main function to render the dashboard interface
 def main():
