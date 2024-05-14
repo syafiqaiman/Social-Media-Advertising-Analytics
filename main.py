@@ -1,4 +1,6 @@
 import streamlit as st
+import hashlib
+import sqlite3
 import requests
 
 from google.ads.googleads.client import GoogleAdsClient
@@ -9,24 +11,96 @@ def main():
     # Set page title and favicon
     st.set_page_config(page_title="Social Media Ads Dashboard", page_icon=":bar_chart:")
 
-    # Render the header section
-    st.title("Social Media Ads Analytics Dashboard")
-    st.sidebar.title("Navigation")
+    # Database connection
+    conn = sqlite3.connect('database/users.db')
+    c = conn.cursor()
 
+    # Create users table if it does not exist
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+                 (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT)''')
+    conn.commit()
+
+    # Check if the user is logged in
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+
+    if st.session_state.logged_in:
+        st.sidebar.title(f"Welcome, {st.session_state.username.title()}!")
+        st.sidebar.button("Logout", on_click=logout)
+        show_dashboard()
+    else:
+        show_login(conn)
+
+    conn.close()
+
+def show_dashboard():
     # Define navigation options
     pages = {
         "Dashboard Overview": show_dashboard_overview,
         "Meta Ads Reporting": show_meta_ads_reporting,
         "Google Ads Reporting": show_google_ads_reporting,
-        "User Profile": show_user_profile,
-        "Logout": logout
+        "User Profile": show_user_profile
     }
 
     # Render navigation sidebar
     selected_page = st.sidebar.radio("Go to", list(pages.keys()))
-
-    # Display the selected page content
     pages[selected_page]()
+
+def show_login(conn):
+    st.title("Login & Registration")
+
+    # Tabs for Login and Registration
+    tab1, tab2 = st.tabs(["Login", "Register"])
+
+    with tab1:
+        st.subheader("Login")
+        login_username = st.text_input("Username", key="login_username")
+        login_password = st.text_input("Password", type="password", key="login_password")
+        if st.button("Login", key="login_button"):
+            login_user(conn, login_username, login_password)
+
+    with tab2:
+        st.subheader("Register")
+        register_username = st.text_input("Username", key="register_username")
+        register_password = st.text_input("Password", type="password", key="register_password")
+        register_password_confirm = st.text_input("Confirm Password", type="password", key="register_password_confirm")
+        if st.button("Register", key="register_button"):
+            if register_password == register_password_confirm:
+                register_user(conn, register_username, register_password)
+            else:
+                st.warning("Passwords do not match.")
+
+def register_user(conn, username, password):
+    c = conn.cursor()
+    hashed_password = hash_password(password)
+    try:
+        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+        conn.commit()
+        st.success("User registered successfully!")
+        st.experimental_rerun()
+    except sqlite3.IntegrityError:
+        st.warning("Username already exists.")
+
+def login_user(conn, username, password):
+    c = conn.cursor()
+    hashed_password = hash_password(password)
+    c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, hashed_password))
+    user = c.fetchone()
+    if user:
+        st.session_state.logged_in = True
+        st.session_state.username = username
+        st.success("Logged in successfully!")
+        st.experimental_rerun()
+    else:
+        st.error("Invalid username or password.")
+
+def logout():
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+    st.experimental_rerun()
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
 # Function to render dashboard overview section
 def show_dashboard_overview():
@@ -61,7 +135,6 @@ def show_meta_ads_reporting():
         # Display the response JSON
         st.write("Response from Facebook API:")
         st.json(data)
-
 
 def get_campaigns(client, customer_id):
     ga_service = client.get_service("GoogleAdsService")
@@ -124,11 +197,6 @@ def show_google_ads_reporting():
 def show_user_profile():
     st.header("User Profile")
     # Add code to display and update user profile information
-
-# Function to handle user logout
-def logout():
-    # Add code to clear user session and redirect to login page
-    st.write("Logout successful")
 
 # Execute the main function
 if __name__ == "__main__":
