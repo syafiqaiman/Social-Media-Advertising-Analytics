@@ -5,7 +5,6 @@ import requests
 
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
-from utils.db_utils import create_connection, create_table
 
 # Define the main function to render the dashboard interface
 def main():
@@ -18,7 +17,7 @@ def main():
 
     # Create users table if it does not exist
     c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT)''')
+                 (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT, role TEXT)''')
     conn.commit()
 
     # Check if the user is logged in
@@ -28,13 +27,13 @@ def main():
     if st.session_state.logged_in:
         st.sidebar.title(f"Welcome, {st.session_state.username.title()}!")
         st.sidebar.button("Logout", on_click=logout)
-        show_dashboard()
+        show_dashboard(conn)
     else:
         show_login(conn)
 
     conn.close()
 
-def show_dashboard():
+def show_dashboard(conn):
     # Define navigation options
     pages = {
         "Dashboard Overview": show_dashboard_overview,
@@ -42,6 +41,9 @@ def show_dashboard():
         "Google Ads Reporting": show_google_ads_reporting,
         "User Profile": show_user_profile
     }
+
+    if st.session_state.role == 'admin':
+        pages["User Management"] = show_user_management
 
     # Render navigation sidebar
     selected_page = st.sidebar.radio("Go to", list(pages.keys()))
@@ -65,17 +67,18 @@ def show_login(conn):
         register_username = st.text_input("Username", key="register_username")
         register_password = st.text_input("Password", type="password", key="register_password")
         register_password_confirm = st.text_input("Confirm Password", type="password", key="register_password_confirm")
+        register_role = st.selectbox("Role", ["Client", "Admin"], key="register_role")
         if st.button("Register", key="register_button"):
             if register_password == register_password_confirm:
-                register_user(conn, register_username, register_password)
+                register_user(conn, register_username, register_password, register_role)
             else:
                 st.warning("Passwords do not match.")
 
-def register_user(conn, username, password):
+def register_user(conn, username, password, role):
     c = conn.cursor()
     hashed_password = hash_password(password)
     try:
-        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+        c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, hashed_password, role))
         conn.commit()
         st.success("User registered successfully!")
         st.experimental_rerun()
@@ -90,6 +93,7 @@ def login_user(conn, username, password):
     if user:
         st.session_state.logged_in = True
         st.session_state.username = username
+        st.session_state.role = user[3]  # Assuming role is the 4th column
         st.success("Logged in successfully!")
         st.experimental_rerun()
     else:
@@ -98,6 +102,7 @@ def login_user(conn, username, password):
 def logout():
     st.session_state.logged_in = False
     st.session_state.username = ""
+    st.session_state.role = ""
     st.experimental_rerun()
 
 def hash_password(password):
@@ -198,6 +203,30 @@ def show_google_ads_reporting():
 def show_user_profile():
     st.header("User Profile")
     # Add code to display and update user profile information
+
+# Function to render user management section (admin only)
+def show_user_management():
+    st.header("User Management")
+    # Add code to display and manage user accounts
+    conn = sqlite3.connect('database/users.db')
+    c = conn.cursor()
+    c.execute("SELECT id, username, role FROM users")
+    users = c.fetchall()
+    conn.close()
+
+    if users:
+        for user in users:
+            st.write(f"ID: {user[0]}, Username: {user[1]}, Role: {user[2]}")
+            if st.button(f"Delete {user[1]}", key=f"delete_{user[0]}"):
+                delete_user(user[0])
+
+def delete_user(user_id):
+    conn = sqlite3.connect('database/users.db')
+    c = conn.cursor()
+    c.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    st.experimental_rerun()
 
 # Execute the main function
 if __name__ == "__main__":
