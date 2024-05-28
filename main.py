@@ -1,6 +1,7 @@
 import streamlit as st
 import hashlib
 import sqlite3
+import pandas as pd
 import requests
 
 from google.ads.googleads.client import GoogleAdsClient
@@ -113,7 +114,36 @@ def show_dashboard_overview():
     st.header("Dashboard Overview")
     # Add code to display summary metrics and charts
 
-# Define the function to make the API request
+# Function to parse the Facebook data
+def parse_facebook_data(data):
+    ad_accounts = data.get('adaccounts', {}).get('data', [])
+    parsed_data = []
+    for account in ad_accounts:
+        business_name = account.get('business_name', '')
+        account_name = account.get('name', '')
+        account_id = account.get('id', '')
+        end_advertiser_name = account.get('end_advertiser_name', '')
+        insights = account.get('insights', {}).get('data', [])
+        
+        for insight in insights:
+            parsed_data.append({
+                'Business Name': business_name,
+                'Account Name': account_name,
+                'Account ID': account_id,
+                'End Advertiser Name': end_advertiser_name,
+                'Clicks': int(insight.get('clicks', 0)),
+                'CPC': float(insight.get('cpc', 0)),
+                'CPM': float(insight.get('cpm', 0)),
+                'CPP': float(insight.get('cpp', 0)),
+                'CTR': float(insight.get('ctr', 0)),
+                'Impressions': int(insight.get('impressions', 0)),
+                'Spend': float(insight.get('spend', 0)),
+                'Date Start': insight.get('date_start', ''),
+                'Date Stop': insight.get('date_stop', '')
+            })
+    return pd.DataFrame(parsed_data)   
+
+# Define the function to make the Meta API request
 def get_facebook_data(access_token):
     url = "https://graph.facebook.com/v19.0/me"
     params = {
@@ -123,11 +153,29 @@ def get_facebook_data(access_token):
     response = requests.get(url, params=params)
     return response.json()    
 
+# # Function to render Meta Ads reporting section
+# def show_meta_ads_reporting():
+#     st.header("Meta Ads Reporting")
+#     st.info("Please enter a valid Access Token.")
+#     # Add code to display Meta Ads analytics
+#     # Input access token
+#     st.sidebar.title("Configuration")
+#     access_token = st.sidebar.text_input("Enter Facebook Access Token")
+    
+#     # Check if access token is provided
+#     if access_token:
+#         # Make API request when access token is provided
+#         st.write("Fetching data from Facebook API...")
+#         data = get_facebook_data(access_token)
+        
+#         # Display the response JSON
+#         st.write("Response from Facebook API:")
+#         st.json(data)
+
 # Function to render Meta Ads reporting section
 def show_meta_ads_reporting():
     st.header("Meta Ads Reporting")
-    st.info("Please enter a valid Access Token.")
-    # Add code to display Meta Ads analytics
+    # st.info("Please enter a valid Access Token.")
     # Input access token
     st.sidebar.title("Configuration")
     access_token = st.sidebar.text_input("Enter Facebook Access Token")
@@ -138,10 +186,35 @@ def show_meta_ads_reporting():
         st.write("Fetching data from Facebook API...")
         data = get_facebook_data(access_token)
         
-        # Display the response JSON
-        st.write("Response from Facebook API:")
-        st.json(data)
+        # Parse the data
+        df = parse_facebook_data(data)
+        
+        if not df.empty:
+            st.write("### Ad Accounts Data")
+            st.dataframe(df)
+            
+            # Display aggregated metrics
+            st.write("### Aggregated Metrics")
+            agg_metrics = df[['Clicks', 'Impressions', 'Spend']].sum()
+            st.write(f"**Total Clicks:** {agg_metrics['Clicks']}")
+            st.write(f"**Total Impressions:** {agg_metrics['Impressions']}")
+            st.write(f"**Total Spend:** ${agg_metrics['Spend']:.2f}")
+            
+            # Display charts
+            st.write("### Clicks Over Time")
+            st.line_chart(df.set_index('Date Start')[['Clicks']])
+            
+            st.write("### Impressions Over Time")
+            st.line_chart(df.set_index('Date Start')[['Impressions']])
+            
+            st.write("### Spend Over Time")
+            st.line_chart(df.set_index('Date Start')[['Spend']])
+        else:
+            st.error("No data available to display.")
+    else:
+        st.warning("Please enter your Facebook Access Token to see the data.")
 
+# Define the function to make the Google API request
 def get_campaigns(client, customer_id):
     ga_service = client.get_service("GoogleAdsService")
 
