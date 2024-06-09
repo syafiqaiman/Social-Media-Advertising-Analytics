@@ -1,31 +1,17 @@
 import streamlit as st
 import hashlib
 import sqlite3
-import requests
-import yaml
 import pandas as pd
+import requests
 import plotly.express as px
-import plotly.graph_objects as go
 
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
-from st_aggrid import AgGrid, GridOptionsBuilder
 
-# Function to load config from a yaml file
-def load_config(file_path):
-    with open(file_path, 'r') as file:
-        return yaml.safe_load(file)
-
-# ---------------------------------------------------------------------------------------------------------------------------------------- #
-# Main function
-# ---------------------------------------------------------------------------------------------------------------------------------------- #
 # Define the main function to render the dashboard interface
 def main():
     # Set page title and favicon
     st.set_page_config(page_title="Social Media Ads Dashboard", page_icon=":bar_chart:")
-
-    # Load config
-    config = load_config('meta_ads.yaml')
 
     # Database connection
     conn = sqlite3.connect('database/users.db')
@@ -43,20 +29,17 @@ def main():
     if st.session_state.logged_in:
         st.sidebar.title(f"Welcome, {st.session_state.username.title()}!")
         st.sidebar.button("Logout", on_click=logout)
-        show_dashboard(config, conn)
+        show_dashboard(conn)
     else:
         show_login(conn)
 
     conn.close()
 
-# ---------------------------------------------------------------------------------------------------------------------------------------- #
-# Login/register and dashboard functions
-# ---------------------------------------------------------------------------------------------------------------------------------------- #
-def show_dashboard(config, conn):
+def show_dashboard(conn):
     # Define navigation options
     pages = {
         "Dashboard Overview": show_dashboard_overview,
-        "Meta Ads Reporting": lambda: show_meta_ads_reporting(config),
+        "Meta Ads Reporting": show_meta_ads_reporting,
         "Google Ads Reporting": show_google_ads_reporting,
         "User Profile": show_user_profile
     }
@@ -132,71 +115,36 @@ def show_dashboard_overview():
     st.header("Dashboard Overview")
     # Add code to display summary metrics and charts
 
-# ---------------------------------------------------------------------------------------------------------------------------------------- #
-# Meta Facebook Ads
-# ---------------------------------------------------------------------------------------------------------------------------------------- #
-# Function to render Meta Ads reporting section
-def show_meta_ads_reporting(config):
-    st.header("Meta Ads Reporting")
-    st.sidebar.title("Configuration")
-    access_token = st.sidebar.text_input("Enter Facebook Access Token", value=config.get('access_token', ''))
-    
-    if access_token:
-        st.write("Fetching data from Facebook API...")
-        data = get_facebook_data(access_token)
-        df = parse_facebook_data(data)
+# Function to parse the Facebook data
+def parse_facebook_data(data):
+    ad_accounts = data.get('adaccounts', {}).get('data', [])
+    parsed_data = []
+    for account in ad_accounts:
+        business_name = account.get('business_name', '')
+        account_name = account.get('name', '')
+        account_id = account.get('id', '')
+        end_advertiser_name = account.get('end_advertiser_name', '')
+        insights = account.get('insights', {}).get('data', [])
         
-        if not df.empty:
-            st.write("### Ad Accounts Data")
-            fig_table = go.Figure(data=[go.Table(
-                header=dict(values=list(df.columns),
-                            fill_color='paleturquoise',
-                            align='left'),
-                cells=dict(values=[df[col] for col in df.columns],
-                           fill_color='lavender',
-                           align='left'))
-            ])
-            st.plotly_chart(fig_table)
-            
-            st.write("### Aggregated Metrics")
-            agg_metrics = df[['Clicks', 'Impressions', 'Spend']].sum()
-            st.write(f"**Total Clicks:** {agg_metrics['Clicks']}")
-            st.write(f"**Total Impressions:** {agg_metrics['Impressions']}")
-            st.write(f"**Total Spend:** ${agg_metrics['Spend']:.2f}")
+        for insight in insights:
+            parsed_data.append({
+                'Business Name': business_name,
+                'Account Name': account_name,
+                'Account ID': account_id,
+                'End Advertiser Name': end_advertiser_name,
+                'Clicks': int(insight.get('clicks', 0)),
+                'CPC': float(insight.get('cpc', 0)),
+                'CPM': float(insight.get('cpm', 0)),
+                'CPP': float(insight.get('cpp', 0)),
+                'CTR': float(insight.get('ctr', 0)),
+                'Impressions': int(insight.get('impressions', 0)),
+                'Spend': float(insight.get('spend', 0)),
+                'Date Start': insight.get('date_start', ''),
+                'Date Stop': insight.get('date_stop', '')
+            })
+    return pd.DataFrame(parsed_data)   
 
-            st.write("### Clicks Over Time")
-            fig_clicks = px.line(df, x='Date Start', y='Clicks', title='Clicks Over Time')
-            st.plotly_chart(fig_clicks)
-            
-            st.write("### Impressions Over Time")
-            fig_impressions = px.line(df, x='Date Start', y='Impressions', title='Impressions Over Time')
-            st.plotly_chart(fig_impressions)
-            
-            st.write("### Spend Over Time")
-            fig_spend = px.line(df, x='Date Start', y='Spend', title='Spend Over Time')
-            st.plotly_chart(fig_spend)
-
-            st.write("### CPC Over Time")
-            fig_cpc = px.line(df, x='Date Start', y='CPC', title='CPC Over Time')
-            st.plotly_chart(fig_cpc)
-            
-            st.write("### CPM Over Time")
-            fig_cpm = px.line(df, x='Date Start', y='CPM', title='CPM Over Time')
-            st.plotly_chart(fig_cpm)
-
-            st.write("### CPP Over Time")
-            fig_cpp = px.line(df, x='Date Start', y='CPP', title='CPP Over Time')
-            st.plotly_chart(fig_cpp)
-            
-            st.write("### CTR Over Time")
-            fig_ctr = px.line(df, x='Date Start', y='CTR', title='CTR Over Time')
-            st.plotly_chart(fig_ctr)
-        else:
-            st.error("No data available to display.")
-    else:
-        st.warning("Please enter your Facebook Access Token to see the data.")
-
-# Function to get the Facebook data through API requests
+# Define the function to make the Meta API request
 def get_facebook_data(access_token):
     url = "https://graph.facebook.com/v19.0/me"
     params = {
@@ -204,7 +152,26 @@ def get_facebook_data(access_token):
         'access_token': access_token
     }
     response = requests.get(url, params=params)
-    return response.json()
+    return response.json()    
+
+# # Function to render Meta Ads reporting section
+# def show_meta_ads_reporting():
+#     st.header("Meta Ads Reporting")
+#     st.info("Please enter a valid Access Token.")
+#     # Add code to display Meta Ads analytics
+#     # Input access token
+#     st.sidebar.title("Configuration")
+#     access_token = st.sidebar.text_input("Enter Facebook Access Token")
+    
+#     # Check if access token is provided
+#     if access_token:
+#         # Make API request when access token is provided
+#         st.write("Fetching data from Facebook API...")
+#         data = get_facebook_data(access_token)
+        
+#         # Display the response JSON
+#         st.write("Response from Facebook API:")
+#         st.json(data)
 
 # Function to parse the Facebook data
 def parse_facebook_data(data):
@@ -235,9 +202,76 @@ def parse_facebook_data(data):
             })
     return pd.DataFrame(parsed_data)
 
-# ---------------------------------------------------------------------------------------------------------------------------------------- #
-# Google Ads
-# ---------------------------------------------------------------------------------------------------------------------------------------- #
+# Function to make the API request
+def get_facebook_data(access_token):
+    url = "https://graph.facebook.com/v19.0/me"
+    params = {
+        'fields': 'adaccounts{business_name,name,end_advertiser_name,insights{clicks,cpc,cpm,cpp,ctr,impressions,spend,date_start,date_stop}}',
+        'access_token': access_token
+    }
+    response = requests.get(url, params=params)
+    return response.json()
+
+# Function to render Meta Ads reporting section
+def show_meta_ads_reporting():
+    st.header("Meta Ads Reporting")
+    st.sidebar.title("Configuration")
+    access_token = st.sidebar.text_input("Enter Facebook Access Token")
+    
+    # Check if access token is provided
+    if access_token:
+        # Make API request when access token is provided
+        st.write("Fetching data from Facebook API...")
+        data = get_facebook_data(access_token)
+        
+        # Parse the data
+        df = parse_facebook_data(data)
+        
+        if not df.empty:
+            st.write("### Ad Accounts Data")
+            st.dataframe(df)
+            
+            # Display aggregated metrics
+            st.write("### Aggregated Metrics")
+            agg_metrics = df[['Clicks', 'Impressions', 'Spend']].sum()
+            st.write(f"**Total Clicks:** {agg_metrics['Clicks']}")
+            st.write(f"**Total Impressions:** {agg_metrics['Impressions']}")
+            st.write(f"**Total Spend:** ${agg_metrics['Spend']:.2f}")
+
+            # Display charts with Plotly
+            st.write("### Clicks Over Time")
+            fig_clicks = px.line(df, x='Date Start', y='Clicks', title='Clicks Over Time')
+            st.plotly_chart(fig_clicks)
+            
+            st.write("### Impressions Over Time")
+            fig_impressions = px.line(df, x='Date Start', y='Impressions', title='Impressions Over Time')
+            st.plotly_chart(fig_impressions)
+            
+            st.write("### Spend Over Time")
+            fig_spend = px.line(df, x='Date Start', y='Spend', title='Spend Over Time')
+            st.plotly_chart(fig_spend)
+
+            # Additional visualizations
+            st.write("### CPC Over Time")
+            fig_cpc = px.line(df, x='Date Start', y='CPC', title='CPC Over Time')
+            st.plotly_chart(fig_cpc)
+            
+            st.write("### CPM Over Time")
+            fig_cpm = px.line(df, x='Date Start', y='CPM', title='CPM Over Time')
+            st.plotly_chart(fig_cpm)
+
+            st.write("### CPP Over Time")
+            fig_cpp = px.line(df, x='Date Start', y='CPP', title='CPP Over Time')
+            st.plotly_chart(fig_cpp)
+            
+            st.write("### CTR Over Time")
+            fig_ctr = px.line(df, x='Date Start', y='CTR', title='CTR Over Time')
+            st.plotly_chart(fig_ctr)
+        else:
+            st.error("No data available to display.")
+    else:
+        st.warning("Please enter your Facebook Access Token to see the data.")
+
 # Define the function to make the Google API request
 def get_campaigns(client, customer_id):
     ga_service = client.get_service("GoogleAdsService")
@@ -304,26 +338,42 @@ def show_user_profile():
 # Function to render user management section (admin only)
 def show_user_management():
     st.header("User Management")
-    # Add code to display and manage user accounts
+
+    # Connect to the database and fetch user data
     conn = sqlite3.connect('database/users.db')
     c = conn.cursor()
     c.execute("SELECT id, username, role FROM users")
     users = c.fetchall()
     conn.close()
 
+    # Check if users exist
     if users:
-        for user in users:
-            st.write(f"ID: {user[0]}, Username: {user[1]}, Role: {user[2]}")
-            if st.button(f"Delete {user[1]}", key=f"delete_{user[0]}"):
-                delete_user(user[0])
+        # Convert user data to a DataFrame for better visualization
+        df_users = pd.DataFrame(users, columns=["ID", "Username", "Role"])
 
+        # Display the DataFrame
+        st.dataframe(df_users)
+
+        # Add delete buttons for each user
+        for user in users:
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write(f"**Username:** {user[1]} \t**Role:** {user[2].capitalize()}")
+            with col2:
+                if st.button(f"Delete", key=f"delete_{user[0]}"):
+                    delete_user(user[0])
+                    st.experimental_rerun()  # Refresh the page after deleting
+    else:
+        st.info("No users available.")
+
+# Function to delete a user by ID
 def delete_user(user_id):
     conn = sqlite3.connect('database/users.db')
     c = conn.cursor()
     c.execute("DELETE FROM users WHERE id = ?", (user_id,))
     conn.commit()
     conn.close()
-    st.experimental_rerun()
+
 
 # Execute the main function
 if __name__ == "__main__":
