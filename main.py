@@ -154,25 +154,6 @@ def get_facebook_data(access_token):
     response = requests.get(url, params=params)
     return response.json()    
 
-# # Function to render Meta Ads reporting section
-# def show_meta_ads_reporting():
-#     st.header("Meta Ads Reporting")
-#     st.info("Please enter a valid Access Token.")
-#     # Add code to display Meta Ads analytics
-#     # Input access token
-#     st.sidebar.title("Configuration")
-#     access_token = st.sidebar.text_input("Enter Facebook Access Token")
-    
-#     # Check if access token is provided
-#     if access_token:
-#         # Make API request when access token is provided
-#         st.write("Fetching data from Facebook API...")
-#         data = get_facebook_data(access_token)
-        
-#         # Display the response JSON
-#         st.write("Response from Facebook API:")
-#         st.json(data)
-
 # Function to parse the Facebook data
 def parse_facebook_data(data):
     ad_accounts = data.get('adaccounts', {}).get('data', [])
@@ -333,7 +314,25 @@ def show_google_ads_reporting():
 # Function to render user profile section
 def show_user_profile():
     st.header("User Profile")
-    # Add code to display and update user profile information
+
+    # Connect to the database
+    conn = sqlite3.connect('database/users.db')
+    c = conn.cursor()
+
+    # Fetch current user's details from the database
+    c.execute("SELECT id, username, role FROM users WHERE username = ?", (st.session_state.username,))
+    user = c.fetchone()
+    conn.close()
+
+    if user:
+        user_id, username, role = user
+        st.write(f"**User ID:** {user_id}")
+        st.write(f"**Username:** {username}")
+        st.write(f"**Role:** {role.capitalize()}")
+
+        # Optionally, you can add more fields or profile details if available
+    else:
+        st.error("User not found.")
 
 # Function to render user management section (admin only)
 def show_user_management():
