@@ -63,7 +63,13 @@ def show_login(conn):
         login_username = st.text_input("Username", key="login_username")
         login_password = st.text_input("Password", type="password", key="login_password")
         if st.button("Login", key="login_button"):
-            login_user(conn, login_username, login_password)
+            # Pre-checks before attempting to log in
+            if not login_username:
+                st.warning("Please fill out the username.")
+            elif not login_password:
+                st.warning("Please fill out the password.")
+            else:
+                login_user(conn, login_username, login_password)
 
     with tab2:
         st.subheader("Register")
@@ -72,10 +78,19 @@ def show_login(conn):
         register_password_confirm = st.text_input("Confirm Password", type="password", key="register_password_confirm")
         register_role = st.selectbox("Role", ["Client", "Admin"], key="register_role")
         if st.button("Register", key="register_button"):
-            if register_password == register_password_confirm:
-                register_user(conn, register_username, register_password, register_role)
-            else:
+            if not register_username:
+                st.warning("Please fill out the username.")
+            elif not register_password:
+                st.warning("Please fill out the password.")
+            elif not register_password_confirm:
+                st.warning("Please confirm your password.")
+            elif register_password != register_password_confirm:
                 st.warning("Passwords do not match.")
+            else:
+                success = register_user(conn, register_username, register_password, register_role)
+                if success:
+                    st.experimental_rerun()
+
 
 def register_user(conn, username, password, role):
     c = conn.cursor()
