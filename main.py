@@ -1,8 +1,9 @@
 import streamlit as st
 import hashlib
 import sqlite3
-import pandas as pd
 import requests
+import time
+import pandas as pd
 import plotly.express as px
 
 from google.ads.googleads.client import GoogleAdsClient
@@ -167,10 +168,10 @@ def parse_facebook_data(data):
         
         for insight in insights:
             parsed_data.append({
-                'Business Name': business_name,
-                'Account Name': account_name,
+                # 'Business Name': business_name,
+                'Ad Account Name': account_name,
                 'Account ID': account_id,
-                'End Advertiser Name': end_advertiser_name,
+                'Advertiser Name': end_advertiser_name,
                 'Clicks': int(insight.get('clicks', 0)),
                 'CPC': float(insight.get('cpc', 0)),
                 'CPM': float(insight.get('cpm', 0)),
@@ -215,37 +216,37 @@ def show_meta_ads_reporting():
             # Display aggregated metrics
             st.write("### Aggregated Metrics")
             agg_metrics = df[['Clicks', 'Impressions', 'Spend']].sum()
-            st.write(f"**Total Clicks:** {agg_metrics['Clicks']}")
-            st.write(f"**Total Impressions:** {agg_metrics['Impressions']}")
-            st.write(f"**Total Spend:** ${agg_metrics['Spend']:.2f}")
+            st.write(f"**Total Clicks:** {agg_metrics['Clicks']} clicks")
+            st.write(f"**Total Impressions:** {agg_metrics['Impressions']} impressions")
+            st.write(f"**Total Spend:** RM {agg_metrics['Spend']:.2f}")
 
             # Display charts with Plotly
-            st.write("### Clicks Over Time")
+            # st.write("### Clicks Over Time")
             fig_clicks = px.line(df, x='Date Start', y='Clicks', title='Clicks Over Time')
             st.plotly_chart(fig_clicks)
             
-            st.write("### Impressions Over Time")
+            # st.write("### Impressions Over Time")
             fig_impressions = px.line(df, x='Date Start', y='Impressions', title='Impressions Over Time')
             st.plotly_chart(fig_impressions)
             
-            st.write("### Spend Over Time")
+            # st.write("### Spend Over Time")
             fig_spend = px.line(df, x='Date Start', y='Spend', title='Spend Over Time')
             st.plotly_chart(fig_spend)
 
             # Additional visualizations
-            st.write("### CPC Over Time")
+            # st.write("### CPC Over Time")
             fig_cpc = px.line(df, x='Date Start', y='CPC', title='CPC Over Time')
             st.plotly_chart(fig_cpc)
             
-            st.write("### CPM Over Time")
+            # st.write("### CPM Over Time")
             fig_cpm = px.line(df, x='Date Start', y='CPM', title='CPM Over Time')
             st.plotly_chart(fig_cpm)
 
-            st.write("### CPP Over Time")
+            # st.write("### CPP Over Time")
             fig_cpp = px.line(df, x='Date Start', y='CPP', title='CPP Over Time')
             st.plotly_chart(fig_cpp)
             
-            st.write("### CTR Over Time")
+            # st.write("### CTR Over Time")
             fig_ctr = px.line(df, x='Date Start', y='CTR', title='CTR Over Time')
             st.plotly_chart(fig_ctr)
         else:
