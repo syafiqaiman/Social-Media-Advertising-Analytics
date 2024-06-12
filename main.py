@@ -2,7 +2,6 @@ import streamlit as st
 import hashlib
 import sqlite3
 import requests
-import time
 import pandas as pd
 import plotly.express as px
 
@@ -267,7 +266,7 @@ def show_meta_ads_reporting():
         else:
             st.error("No data available to display.")
     else:
-        st.warning("Please enter your Facebook Access Token to see the data.")
+        st.info("Please enter your Facebook Access Token to see the data.")
 
 # Define the function to make the Google API request
 def get_campaigns(client, customer_id):
