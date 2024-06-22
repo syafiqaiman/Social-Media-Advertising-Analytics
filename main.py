@@ -364,21 +364,50 @@ def show_user_management():
     if users:
         # Convert user data to a DataFrame for better visualization
         df_users = pd.DataFrame(users, columns=["ID", "Username", "Role"])
-
-        # Display the DataFrame
         st.dataframe(df_users)
 
-        # Add delete buttons for each user
-        for user in users:
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.write(f"**Username:** {user[1]} \t**Role:** {user[2].capitalize()}")
-            with col2:
-                if st.button(f"Delete", key=f"delete_{user[0]}"):
-                    delete_user(user[0])
-                    st.experimental_rerun()  # Refresh the page after deleting
+        # Create a list of usernames with their roles
+        user_list = [f"{user[1]} (Role: {user[2].capitalize()})" for user in users]
+        user_ids = [user[0] for user in users]
+
+        # Use a selectbox widget to select a user for editing
+        selected_user = st.selectbox('Select User to Edit', [""] + user_list)
+
+        if selected_user:
+            # Get the ID of the selected user
+            selected_user_id = user_ids[user_list.index(selected_user) - 1]
+            user_info = next(user for user in users if user[0] == selected_user_id)
+
+            # Display current details and provide inputs for updating
+            st.write("### Edit User Details")
+            new_username = st.text_input("New Username", user_info[1], key="edit_username")
+            new_password = st.text_input("New Password", type="password", key="edit_password")
+            new_password_confirm = st.text_input("Confirm New Password", type="password", key="edit_password_confirm")
+
+            if st.button("Update Details"):
+                if new_password == new_password_confirm:
+                    update_user_details(selected_user_id, new_username, new_password)
+                    st.success("User details updated successfully!")
+                    st.experimental_rerun()  # Refresh the page after updating
+                else:
+                    st.warning("Passwords do not match.")
+
+            # Add a button to delete the user
+            if st.button("Delete User", key=f"delete_{selected_user_id}"):
+                delete_user(selected_user_id)
+                st.success("User deleted successfully!")
+                st.experimental_rerun()  # Refresh the page after deleting
     else:
         st.info("No users available.")
+
+# Function to update user details
+def update_user_details(user_id, new_username, new_password):
+    conn = sqlite3.connect('database/users.db')
+    c = conn.cursor()
+    hashed_password = hash_password(new_password)
+    c.execute("UPDATE users SET username = ?, password = ? WHERE id = ?", (new_username, hashed_password, user_id))
+    conn.commit()
+    conn.close()
 
 # Function to delete a user by ID
 def delete_user(user_id):
@@ -392,3 +421,4 @@ def delete_user(user_id):
 # Execute the main function
 if __name__ == "__main__":
     main()
+    # show_user_management()
