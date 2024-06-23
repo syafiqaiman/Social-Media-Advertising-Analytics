@@ -198,15 +198,6 @@ def parse_facebook_data(data):
             })
     return pd.DataFrame(parsed_data)
 
-# Function to make the API request
-def get_facebook_data(access_token):
-    url = "https://graph.facebook.com/v19.0/me"
-    params = {
-        'fields': 'adaccounts{business_name,name,end_advertiser_name,insights{clicks,cpc,cpm,cpp,ctr,impressions,spend,date_start,date_stop}}',
-        'access_token': access_token
-    }
-    response = requests.get(url, params=params)
-    return response.json()
 
 # Function to render Meta Ads reporting section
 def show_meta_ads_reporting():
