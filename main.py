@@ -217,7 +217,7 @@ def show_meta_ads_reporting():
     # Check if access token is provided
     if access_token:
         # Make API request when access token is provided
-        st.write("Fetching data from Facebook API...")
+        st.success("Fetching data from Facebook API...")
         data = get_facebook_data(access_token)
         
         # Parse the data
@@ -230,39 +230,33 @@ def show_meta_ads_reporting():
             # Display aggregated metrics
             st.write("### Aggregated Metrics")
             agg_metrics = df[['Clicks', 'Impressions', 'Spend']].sum()
-            st.write(f"**Total Clicks:** {agg_metrics['Clicks']} clicks")
-            st.write(f"**Total Impressions:** {agg_metrics['Impressions']} impressions")
-            st.write(f"**Total Spend:** RM {agg_metrics['Spend']:.2f}")
+            st.info(f"**Total Clicks:** {agg_metrics['Clicks']} clicks")
+            st.info(f"**Total Impressions:** {agg_metrics['Impressions']} impressions")
+            st.info(f"**Total Spend:** RM {agg_metrics['Spend']:.2f}")
+
+            # Ensure that dates are correctly parsed
+            df['Date Start'] = pd.to_datetime(df['Date Start'], errors='coerce')
+            df['Date Stop'] = pd.to_datetime(df['Date Stop'], errors='coerce')
 
             # Display charts with Plotly
-            # st.write("### Clicks Over Time")
-            fig_clicks = px.line(df, x='Date Start', y='Clicks', title='Clicks Over Time')
-            st.plotly_chart(fig_clicks)
-            
-            # st.write("### Impressions Over Time")
-            fig_impressions = px.line(df, x='Date Start', y='Impressions', title='Impressions Over Time')
-            st.plotly_chart(fig_impressions)
-            
-            # st.write("### Spend Over Time")
-            fig_spend = px.line(df, x='Date Start', y='Spend', title='Spend Over Time')
-            st.plotly_chart(fig_spend)
+            # fig_clicks = px.line(df, x='Date Start', y='Clicks', title='Clicks Over Time')
+            # st.plotly_chart(fig_clicks)
 
-            # Additional visualizations
-            # st.write("### CPC Over Time")
-            fig_cpc = px.line(df, x='Date Start', y='CPC', title='CPC Over Time')
-            st.plotly_chart(fig_cpc)
-            
-            # st.write("### CPM Over Time")
-            fig_cpm = px.line(df, x='Date Start', y='CPM', title='CPM Over Time')
-            st.plotly_chart(fig_cpm)
+            # fig_impressions = px.line(df, x='Date Start', y='Impressions', title='Impressions Over Time')
+            # st.plotly_chart(fig_impressions)
 
-            # st.write("### CPP Over Time")
-            fig_cpp = px.line(df, x='Date Start', y='CPP', title='CPP Over Time')
-            st.plotly_chart(fig_cpp)
-            
-            # st.write("### CTR Over Time")
-            fig_ctr = px.line(df, x='Date Start', y='CTR', title='CTR Over Time')
-            st.plotly_chart(fig_ctr)
+            # fig_spend = px.line(df, x='Date Start', y='Spend', title='Spend Over Time')
+            # st.plotly_chart(fig_spend)
+
+            # # Additional visualizations
+            # fig_cpc = px.line(df, x='Date Start', y='CPC', title='CPC Over Time')
+            # st.plotly_chart(fig_cpc)
+
+            # fig_cpm = px.line(df, x='Date Start', y='CPM', title='CPM Over Time')
+            # st.plotly_chart(fig_cpm)
+
+            # fig_cpp = px.line(df, x='Date Start', y='CPP', title='CPP Over Time')
+            # st.plotly_chart(fig_cpp)
         else:
             st.error("No data available to display.")
     else:
@@ -341,9 +335,9 @@ def show_user_profile():
 
     if user:
         user_id, username, role = user
-        st.write(f"**User ID:** {user_id}")
-        st.write(f"**Username:** {username}")
-        st.write(f"**Role:** {role.capitalize()}")
+        st.info(f"**User ID:** {user_id}")
+        st.info(f"**Username:** {username}")
+        st.info(f"**Role:** {role.capitalize()}")
 
         # Optionally, you can add more fields or profile details if available
     else:
@@ -364,7 +358,7 @@ def show_user_management():
     if users:
         # Convert user data to a DataFrame for better visualization
         df_users = pd.DataFrame(users, columns=["ID", "Username", "Role"])
-        st.dataframe(df_users)
+        # st.dataframe(df_users)
 
         # Create a list of usernames with their roles
         user_list = [f"{user[1]} (Role: {user[2].capitalize()})" for user in users]
