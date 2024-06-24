@@ -90,7 +90,6 @@ def show_login(conn):
                 if success:
                     st.experimental_rerun()
 
-
 def register_user(conn, username, password, role):
     c = conn.cursor()
     hashed_password = hash_password(password)
@@ -198,10 +197,15 @@ def parse_facebook_data(data):
             })
     return pd.DataFrame(parsed_data)
 
-
 # Function to render Meta Ads reporting section
 def show_meta_ads_reporting():
-    st.header("Meta Ads Reporting")
+    # Set up columns for image and header
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        st.image("assets/facebook.png", use_column_width=True)  # Replace with your image path or URL
+    with col2:
+        st.header("Meta Ads Reporting")
+
     st.sidebar.title("Configuration")
     access_token = st.sidebar.text_input("Enter Facebook Access Token")
     
@@ -215,39 +219,31 @@ def show_meta_ads_reporting():
         df = parse_facebook_data(data)
         
         if not df.empty:
-            st.write("### Ad Accounts Data")
+            st.warning("## Ad Accounts Data")
             st.dataframe(df)
             
             # Display aggregated metrics
-            st.write("### Aggregated Metrics")
-            agg_metrics = df[['Clicks', 'Impressions', 'Spend']].sum()
-            st.info(f"**Total Clicks:** {agg_metrics['Clicks']} clicks")
-            st.info(f"**Total Impressions:** {agg_metrics['Impressions']} impressions")
-            st.info(f"**Total Spend:** RM {agg_metrics['Spend']:.2f}")
+            st.warning("## Aggregated Metrics")
+            agg_metrics = df[['Clicks', 'Impressions', 'Spend', 'CTR', 'CPC', 'CPM']].sum()
+            col1, col2 = st.columns(2)
+            col1.info(f"### Total Clicks \n # {agg_metrics['Clicks']:.0f}")
+            col1.info(f"### Click Through Rate \n # {agg_metrics['CTR']:.2f}%")
+            col1.info(f"### Cost Per Click \n # RM {agg_metrics['CPC']:.2f}")
 
-            # Ensure that dates are correctly parsed
-            df['Date Start'] = pd.to_datetime(df['Date Start'], errors='coerce')
-            df['Date Stop'] = pd.to_datetime(df['Date Stop'], errors='coerce')
+            col2.info(f"### Total Impressions \n # {agg_metrics['Impressions']:.0f}")
+            col2.info(f"### Total Spend \n # RM {agg_metrics['Spend']:.2f}")
+            col2.info(f"### Cost Per Mille \n # RM {agg_metrics['CPM']:.2f}")
 
-            # Display charts with Plotly
-            # fig_clicks = px.line(df, x='Date Start', y='Clicks', title='Clicks Over Time')
-            # st.plotly_chart(fig_clicks)
-
-            # fig_impressions = px.line(df, x='Date Start', y='Impressions', title='Impressions Over Time')
-            # st.plotly_chart(fig_impressions)
-
-            # fig_spend = px.line(df, x='Date Start', y='Spend', title='Spend Over Time')
-            # st.plotly_chart(fig_spend)
-
-            # # Additional visualizations
-            # fig_cpc = px.line(df, x='Date Start', y='CPC', title='CPC Over Time')
-            # st.plotly_chart(fig_cpc)
-
-            # fig_cpm = px.line(df, x='Date Start', y='CPM', title='CPM Over Time')
-            # st.plotly_chart(fig_cpm)
-
-            # fig_cpp = px.line(df, x='Date Start', y='CPP', title='CPP Over Time')
-            # st.plotly_chart(fig_cpp)
+            # Convert DataFrame to CSV
+            csv = df.to_csv(index=False)
+            
+            # Create a download button
+            st.download_button(
+                label='Download data as CSV',
+                data=csv,
+                file_name='facebook_ads_data.csv',
+                mime='text/csv'
+            )
         else:
             st.error("No data available to display.")
     else:
@@ -290,7 +286,13 @@ def get_campaigns(client, customer_id):
 
 # Function to render Google Ads reporting section
 def show_google_ads_reporting():
-    st.header("Google Ads Reporting")
+    # Set up columns for image and header
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        st.image("assets/search.png", use_column_width=True) 
+    with col2:
+        st.header("Google Ads Reporting")
+
     # Add code to display Google Ads analytics
     st.sidebar.title("Configuration")
     customer_id = st.sidebar.text_input("Enter Customer ID")
@@ -402,8 +404,6 @@ def delete_user(user_id):
     conn.commit()
     conn.close()
 
-
 # Execute the main function
 if __name__ == "__main__":
     main()
-    # show_user_management()
