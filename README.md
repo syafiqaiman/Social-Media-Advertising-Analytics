@@ -15,7 +15,6 @@ The proposed social media advertising analytics web app aims to provide in-depth
 - [Screenshots](#screenshots)
 - [Technologies Used](#technologies-used)
 - [Contributing](#contributing)
-- [License](#license)
 - [Contact](#contact)
 
 ## Features
