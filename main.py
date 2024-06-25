@@ -38,7 +38,7 @@ def main():
 def show_dashboard(conn):
     # Define navigation options
     pages = {
-        "Dashboard Overview": show_dashboard_overview,
+        # "Dashboard Overview": show_dashboard_overview,
         "Meta Ads Reporting": show_meta_ads_reporting,
         "Google Ads Reporting": show_google_ads_reporting,
         "User Profile": show_user_profile
@@ -313,7 +313,29 @@ def show_google_ads_reporting():
         for campaign_id, campaign_name in campaigns:
             st.write(f"- ID: {campaign_id}, Name: {campaign_name}")
 
-# Function to render user profile section
+# # Function to render user profile section
+# def show_user_profile():
+#     st.header("User Profile")
+
+#     # Connect to the database
+#     conn = sqlite3.connect('database/users.db')
+#     c = conn.cursor()
+
+#     # Fetch current user's details from the database
+#     c.execute("SELECT id, username, role FROM users WHERE username = ?", (st.session_state.username,))
+#     user = c.fetchone()
+#     conn.close()
+
+#     if user:
+#         user_id, username, role = user
+#         st.info(f"**User ID:** {user_id}")
+#         st.info(f"**Username:** {username}")
+#         st.info(f"**Role:** {role.capitalize()}")
+
+#         # Optionally, you can add more fields or profile details if available
+#     else:
+#         st.error("User not found.")
+
 def show_user_profile():
     st.header("User Profile")
 
@@ -324,7 +346,6 @@ def show_user_profile():
     # Fetch current user's details from the database
     c.execute("SELECT id, username, role FROM users WHERE username = ?", (st.session_state.username,))
     user = c.fetchone()
-    conn.close()
 
     if user:
         user_id, username, role = user
@@ -332,9 +353,43 @@ def show_user_profile():
         st.info(f"**Username:** {username}")
         st.info(f"**Role:** {role.capitalize()}")
 
+        st.subheader("Change Username")
+        new_username = st.text_input("New Username", key="new_username")
+        if st.button("Update Username"):
+            if new_username:
+                c.execute("UPDATE users SET username = ? WHERE id = ?", (new_username, user_id))
+                conn.commit()
+                st.session_state.username = new_username
+                st.success("Username updated successfully.")
+            else:
+                st.warning("Please enter a new username.")
+
+        st.subheader("Change Password")
+        new_password = st.text_input("New Password", type="password", key="new_password")
+        confirm_password = st.text_input("Confirm New Password", type="password", key="confirm_password")
+        if st.button("Update Password"):
+            if new_password and new_password == confirm_password:
+                # For security, it's better to hash the password before storing it
+                hashed_password = hash_password(new_password)
+                c.execute("UPDATE users SET password = ? WHERE id = ?", (hashed_password, user_id))
+                conn.commit()
+                st.success("Password updated successfully.")
+            elif new_password != confirm_password:
+                st.warning("Passwords do not match.")
+            else:
+                st.warning("Please enter and confirm your new password.")
+
         # Optionally, you can add more fields or profile details if available
+
     else:
         st.error("User not found.")
+
+    conn.close()
+
+def hash_password(password):
+    # Placeholder function for hashing the password
+    # Replace this with actual hashing logic (e.g., using bcrypt)
+    return password
 
 # Function to render user management section (admin only)
 def show_user_management():
@@ -351,50 +406,20 @@ def show_user_management():
     if users:
         # Convert user data to a DataFrame for better visualization
         df_users = pd.DataFrame(users, columns=["ID", "Username", "Role"])
-        # st.dataframe(df_users)
 
-        # Create a list of usernames with their roles
-        user_list = [f"{user[1]} (Role: {user[2].capitalize()})" for user in users]
-        user_ids = [user[0] for user in users]
+        st.warning("Please select users to delete.")
 
-        # Use a selectbox widget to select a user for editing
-        selected_user = st.selectbox('Select User to Edit', [""] + user_list)
-
-        if selected_user:
-            # Get the ID of the selected user
-            selected_user_id = user_ids[user_list.index(selected_user) - 1]
-            user_info = next(user for user in users if user[0] == selected_user_id)
-
-            # Display current details and provide inputs for updating
-            st.write("### Edit User Details")
-            new_username = st.text_input("New Username", user_info[1], key="edit_username")
-            new_password = st.text_input("New Password", type="password", key="edit_password")
-            new_password_confirm = st.text_input("Confirm New Password", type="password", key="edit_password_confirm")
-
-            if st.button("Update Details"):
-                if new_password == new_password_confirm:
-                    update_user_details(selected_user_id, new_username, new_password)
-                    st.success("User details updated successfully!")
-                    st.experimental_rerun()  # Refresh the page after updating
-                else:
-                    st.warning("Passwords do not match.")
-
-            # Add a button to delete the user
-            if st.button("Delete User", key=f"delete_{selected_user_id}"):
-                delete_user(selected_user_id)
-                st.success("User deleted successfully!")
-                st.experimental_rerun()  # Refresh the page after deleting
+        # Add delete buttons for each user
+        for user in users:
+            col1, col2 = st.columns([4,1])
+            with col1:
+                st.info(f"**Username:** {user[1].capitalize()}  \n **Role:** {user[2].capitalize()}")
+            with col2:
+                if st.button(f"Delete", key=f"delete_{user[0]}"):
+                    delete_user(user[0])
+                    st.experimental_rerun() # Refresh the page after deleting
     else:
         st.info("No users available.")
-
-# Function to update user details
-def update_user_details(user_id, new_username, new_password):
-    conn = sqlite3.connect('database/users.db')
-    c = conn.cursor()
-    hashed_password = hash_password(new_password)
-    c.execute("UPDATE users SET username = ?, password = ? WHERE id = ?", (new_username, hashed_password, user_id))
-    conn.commit()
-    conn.close()
 
 # Function to delete a user by ID
 def delete_user(user_id):
