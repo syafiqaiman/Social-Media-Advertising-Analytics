@@ -3,7 +3,7 @@
 ## Project Title: Social Media Advertising Analytics
 
 ## Project Description
-This is the repository for Mohammad Syafiq Aiman bin Mohammad Suhaimi (73575) for TMF4093 Final Year Project. This project is to develop a Social Media Advertising Analytics dashboard that aims to empowers  digital marketing agencies and businesses to efficiently manage their advertising campaigns on Facebook, Instagram, and Google.
+This is the repository for **Mohammad Syafiq Aiman bin Mohammad Suhaimi (73575)** for TMF4093 Final Year Project. This project is to develop a **Social Media Advertising Analytics** dashboard that aims to empowers  digital marketing agencies and businesses to efficiently manage their advertising campaigns on Facebook, Instagram, and Google.
 
 The proposed social media advertising analytics web app aims to provide in-depth insights into the performance of advertising campaigns across major social media platforms, including Facebook, Instagram, Google, and YouTube.
 
