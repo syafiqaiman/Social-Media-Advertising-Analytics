@@ -28,8 +28,8 @@ Some of the features of this project are:
 - Admin users are able to manage other users such as deleting other users.
 
 ## Installation
-1. Clone the repository, run this command in your Powershell/Command Prompt: `git clone https://github.com/syafiqaiman/fyp.git`
-2. Navigate to the project directory, run: `cd fyp`
+1. Clone the repository, run this command in your Powershell/Command Prompt: `git clone https://github.com/syafiqaiman/Social-Media-Advertising-Analytics.git`
+2. Navigate to the project directory, run: `cd Social-Media-Advertising-Analytics`
 3. Install dependencies using the *requirements.txt* file, run: `pip install -r requirements.txt`
 
 ## Usage
@@ -49,6 +49,6 @@ To run the application, run: `streamlit run main.py`
 ## Contact
 Syafiq - [msyafiqaiman1@gmail.com](mailto:msyafiqaiman1@gmail.com)
 
-Project Link - [https://github.com/syafiqaiman/fyp.git](https://github.com/syafiqaiman/fyp.git)
+Project Link - [https://github.com/syafiqaiman/Social-Media-Advertising-Analytics.git](https://github.com/syafiqaiman/Social-Media-Advertising-Analytics.git)
 
 
